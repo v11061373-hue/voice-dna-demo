@@ -111,14 +111,17 @@ def parse_style_card(text: str) -> dict:
     return card
 
 
-def has_key() -> bool:
-    return bool(os.environ.get("VOICEDNA_API_KEY"))
+def has_key(api_key: str | None = None) -> bool:
+    return bool(api_key or os.environ.get("VOICEDNA_API_KEY"))
 
 
-def call_llm(prompt: str, system: str = "") -> str:
-    base_url = os.environ.get("VOICEDNA_BASE_URL") or "https://api.deepseek.com"
-    model = os.environ.get("VOICEDNA_MODEL") or "deepseek-chat"
-    key = os.environ.get("VOICEDNA_API_KEY", "")
+def call_llm(
+    prompt: str, system: str = "", *,
+    api_key: str | None = None, base_url: str | None = None, model: str | None = None,
+) -> str:
+    base_url = base_url or os.environ.get("VOICEDNA_BASE_URL") or "https://api.deepseek.com"
+    model = model or os.environ.get("VOICEDNA_MODEL") or "deepseek-chat"
+    key = api_key or os.environ.get("VOICEDNA_API_KEY", "")
     if not key:
         raise ValueError("未配置 VOICEDNA_API_KEY")
     messages = ([{"role": "system", "content": system}] if system else []) + [
@@ -215,9 +218,9 @@ def _fmt_transcripts(transcripts: dict | None) -> str:
 
 def build_style_card(
     profile: str = "", topics: list | None = None, samples: str = "",
-    transcripts: dict | None = None,
+    transcripts: dict | None = None, *, api_key: str | None = None,
 ) -> dict:
-    if not has_key():
+    if not has_key(api_key):
         return dict(FALLBACK_STYLE_CARD)
     prompt = STYLE_CARD_PROMPT_TEMPLATE.format(
         profile=profile,
@@ -225,22 +228,25 @@ def build_style_card(
         samples=samples,
         transcripts=_fmt_transcripts(transcripts),
     )
-    return parse_style_card(call_llm(prompt))
+    return parse_style_card(call_llm(prompt, api_key=api_key))
 
 
 def generate_content(
-    style_card: dict, target: str, profile: str = "", topics: list | None = None
+    style_card: dict, target: str, profile: str = "", topics: list | None = None,
+    *, api_key: str | None = None,
 ) -> dict:
     """target: 社媒 → 自媒体内容+策略；电商 → 宣传策略+文案。"""
     topics = topics or []
-    if has_key():
-        return _generate_llm(style_card, target, profile, topics)
+    if has_key(api_key):
+        return _generate_llm(style_card, target, profile, topics, api_key)
     if target == "社媒":
         return _generate_social_fallback(style_card, profile, topics)
     return _generate_ecommerce_fallback(style_card, profile, topics)
 
 
-def _generate_llm(style_card: dict, target: str, profile: str, topics: list) -> dict:
+def _generate_llm(
+    style_card: dict, target: str, profile: str, topics: list, api_key: str | None
+) -> dict:
     if target == "社媒":
         prompt = SOCIAL_PROMPT_TEMPLATE.format(
             profile=profile, style_card=json.dumps(style_card, ensure_ascii=False), topics=topics
@@ -251,7 +257,7 @@ def _generate_llm(style_card: dict, target: str, profile: str, topics: list) -> 
             profile=profile, style_card=json.dumps(style_card, ensure_ascii=False), topics=topics
         )
         keys = _ECOMMERCE_KEYS
-    data = json.loads(_strip_markdown(call_llm(prompt)))
+    data = json.loads(_strip_markdown(call_llm(prompt, api_key=api_key)))
     return {k: data.get(k, "未知") for k in keys}
 
 

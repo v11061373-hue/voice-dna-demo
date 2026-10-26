@@ -56,16 +56,31 @@ topics = st.text_input(
     value="" if source.startswith("接") else "技术标,废标避坑",
 )
 
+with st.expander("🔑 接自己的 key（可选）"):
+    api_key = st.text_input(
+        "DeepSeek API Key",
+        type="password",
+        help="不填则走确定性降级演示；填了真调 DeepSeek。",
+    )
+    st.caption(
+        "安全声明：key 仅存当前浏览器会话内存，不落盘、不写 Streamlit Secrets、"
+        "不进 GitHub 仓库。建议用临时 key，用完即删。"
+    )
+
 st.subheader("③ 跑管线")
-st.caption("LLM 已配，真调 DeepSeek" if demo.has_key() else "未配 key，确定性降级演示")
+st.caption("LLM 已配，真调 DeepSeek" if demo.has_key(api_key) else "未配 key，确定性降级演示")
 if st.button("抽表达 DNA → 生成内容", type="primary"):
     topic_list = [t.strip() for t in topics.split(",") if t.strip()] + hot_topics
     with st.spinner("抽表达 DNA..."):
-        card = demo.build_style_card(profile=profile, samples=samples, topics=topic_list)
+        card = demo.build_style_card(
+            profile=profile, samples=samples, topics=topic_list, api_key=api_key
+        )
     st.markdown("**① 表达 DNA（7 字段风格卡）**")
     st.json(card)
     with st.spinner("生成内容..."):
-        content = demo.generate_content(card, target, profile=profile, topics=topic_list)
+        content = demo.generate_content(
+            card, target, profile=profile, topics=topic_list, api_key=api_key
+        )
     st.markdown(f"**② 定制内容（{target}）**")
     for k, v in content.items():
         st.markdown(f"**{k}**")

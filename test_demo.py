@@ -21,7 +21,11 @@ def test_build_style_card_fallback_without_key(monkeypatch):
 def test_build_style_card_llm_path(monkeypatch):
     monkeypatch.setenv("VOICEDNA_API_KEY", "x")
     monkeypatch.setattr(
-        demo, "call_llm", lambda prompt, system="": '{"persona": "专家", "voice": "犀利"}'
+        demo,
+        "call_llm",
+        lambda prompt, system="", *, api_key=None, base_url=None, model=None: (
+            '{"persona": "专家", "voice": "犀利"}'
+        ),
     )
     card = demo.build_style_card(profile="p", samples="s")
     assert card["persona"] == "专家"
@@ -88,3 +92,67 @@ def test_fetch_popular_fallback(monkeypatch):
     out = demo.fetch_bilibili_hot("标书代写", 5)
     assert len(out) == 1
     assert out[0]["title"] == "电竞决赛"
+
+
+def test_has_key_with_explicit_key(monkeypatch):
+    monkeypatch.delenv("VOICEDNA_API_KEY", raising=False)
+    assert demo.has_key() is False
+    assert demo.has_key("sk-user") is True
+
+
+def test_call_llm_uses_passed_params(monkeypatch):
+    monkeypatch.delenv("VOICEDNA_API_KEY", raising=False)
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["auth"] = headers["Authorization"]
+        captured["model"] = json["model"]
+
+        class R:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"choices": [{"message": {"content": "ok"}}]}
+
+        return R()
+
+    monkeypatch.setattr(demo.httpx, "post", fake_post)
+    out = demo.call_llm(
+        "p", api_key="sk-user", base_url="http://localhost:11434/v1", model="llama3"
+    )
+    assert out == "ok"
+    assert captured["url"] == "http://localhost:11434/v1/chat/completions"
+    assert captured["auth"] == "Bearer sk-user"
+    assert captured["model"] == "llama3"
+
+
+def test_build_style_card_uses_passed_key(monkeypatch):
+    monkeypatch.delenv("VOICEDNA_API_KEY", raising=False)
+    seen = {}
+
+    def fake_call(prompt, system="", *, api_key=None, base_url=None, model=None):
+        seen["api_key"] = api_key
+        return '{"persona": "专家"}'
+
+    monkeypatch.setattr(demo, "call_llm", fake_call)
+    card = demo.build_style_card(profile="p", samples="s", api_key="sk-user")
+    assert seen["api_key"] == "sk-user"
+    assert card["persona"] == "专家"
+
+
+def test_generate_content_uses_passed_key(monkeypatch):
+    monkeypatch.delenv("VOICEDNA_API_KEY", raising=False)
+    seen = {}
+
+    def fake_llm(style_card, target, profile, topics, api_key):
+        seen["api_key"] = api_key
+        return {"宣传策略": "x", "标题": "y", "详情": "z", "客服话术": "w"}
+
+    monkeypatch.setattr(demo, "_generate_llm", fake_llm)
+    out = demo.generate_content(
+        dict(demo.FALLBACK_STYLE_CARD), "电商", api_key="sk-user"
+    )
+    assert seen["api_key"] == "sk-user"
+    assert set(out) == {"宣传策略", "标题", "详情", "客服话术"}
