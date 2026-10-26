@@ -22,14 +22,18 @@ st.warning(
 
 st.divider()
 
-st.subheader("① 数据源")
+st.subheader("数据源")
+st.caption(
+    "本 demo 内置 keyless B站热榜 + 贴样本。完整项目 `voice-dna` 可直连登录态数据源："
+    "抖音 / 小红书 / 微博 / 淘宝 / 京东（扫码登录后取真实数据）。"
+)
 source = st.radio(
     "选择数据源",
     ["预设案例：数码测评博主（零网络可跑）", "接真实数据：B站热榜 + 贴样本"],
     horizontal=True,
 )
 
-st.subheader("② 模仿目标")
+st.subheader("模仿目标")
 target = st.radio("生成目标", ["社媒", "电商"], horizontal=True)
 
 hot_topics: list[str] = []
@@ -67,7 +71,7 @@ with st.expander("🔑 接自己的 key（可选）"):
         "不进 GitHub 仓库。建议用临时 key，用完即删。"
     )
 
-st.subheader("③ 跑管线")
+st.subheader("跑管线")
 st.caption("LLM 已配，真调 DeepSeek" if demo.has_key(api_key) else "未配 key，确定性降级演示")
 if st.button("抽表达 DNA → 生成内容", type="primary"):
     topic_list = [t.strip() for t in topics.split(",") if t.strip()] + hot_topics
@@ -75,13 +79,13 @@ if st.button("抽表达 DNA → 生成内容", type="primary"):
         card = demo.build_style_card(
             profile=profile, samples=samples, topics=topic_list, api_key=api_key
         )
-    st.markdown("**① 表达 DNA（7 字段风格卡）**")
+    st.markdown("**表达 DNA（7 字段风格卡）**")
     st.json(card)
     with st.spinner("生成内容..."):
         content = demo.generate_content(
             card, target, profile=profile, topics=topic_list, api_key=api_key
         )
-    st.markdown(f"**② 定制内容（{target}）**")
+    st.markdown(f"**定制内容（{target}）**")
     for k, v in content.items():
         st.markdown(f"**{k}**")
         st.write(v)
