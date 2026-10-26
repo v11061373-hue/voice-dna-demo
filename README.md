@@ -20,9 +20,11 @@ Stage ① 与主仓库 `src/tools/style_mimic.py` 同 prompt + 同 7 字段 sche
 ## 数据源
 
 - **预置例子**：标书代写账号（默认，零网络可跑）。
-- **贴样本**：手动贴参考文案。
-- **实时选题**：B站综合热门 keyless（`/x/web-interface/popular`），客户端按赛道关键词过滤（不聚类→聚类）。只喂选题，喂不了文案样本（样本需转录，主仓库 P5-E）。
+- **贴样本**：手动贴参考文案 / 转录逐字稿。
+- **实时选题**：B站分区热榜 keyless（`/x/web-interface/ranking/region`），按赛道原生聚类（赛道命中→分区热榜；未命中→综合热门 `/x/web-interface/popular`）。只喂选题，不喂文案样本。
 - **实时搜索**（B站/小红书/抖音/微博）走主仓库 `trend_hunter` 的 cn-scraper（需登录），demo 不接。
+
+> **文案样本怎么来**：「贴样本」可贴转录逐字稿。完整项目里这条链路是语音转写（ASR，自动语音识别）——`src/tools/video_download.py` 拉取视频素材、`src/tools/transcribe.py` 做语音转文字，产出逐字稿后喂给表达 DNA 抽取（对应本 demo 的 `build_style_card(transcripts=...)`）。
 
 ## 本地跑
 
