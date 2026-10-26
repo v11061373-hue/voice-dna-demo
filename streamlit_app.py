@@ -25,7 +25,7 @@ st.divider()
 st.subheader("① 数据源")
 source = st.radio(
     "选择数据源",
-    ["预设案例：标书代写账号（零网络可跑）", "接真实数据：B站热榜 + 贴样本"],
+    ["预设案例：数码测评博主（零网络可跑）", "接真实数据：B站热榜 + 贴样本"],
     horizontal=True,
 )
 
@@ -34,8 +34,8 @@ target = st.radio("生成目标", ["社媒", "电商"], horizontal=True)
 
 hot_topics: list[str] = []
 if source.startswith("预设案例"):
-    profile = st.text_input("账号画像", value=demo.PRESET_BIDWRITER["profile"])
-    samples = st.text_area("文案样本", value=demo.PRESET_BIDWRITER["samples"], height=160)
+    profile = st.text_input("账号画像", value=demo.PRESET_REVIEWER["profile"])
+    samples = st.text_area("文案样本", value=demo.PRESET_REVIEWER["samples"], height=160)
 else:
     profile = st.text_input("账号画像（填赛道关键词，如：美妆 / 数码 / 美食 / 健身）", value="")
     st.markdown("**实时选题：B站热榜（keyless，赛道命中走分区热榜原生聚类）**")
@@ -53,7 +53,7 @@ else:
 
 topics = st.text_input(
     "目标选题（逗号分隔，可留空用热榜）",
-    value="" if source.startswith("接") else "技术标,废标避坑",
+    value="" if source.startswith("接") else "百元级蓝牙耳机,手机散热背夹",
 )
 
 with st.expander("🔑 接自己的 key（可选）"):

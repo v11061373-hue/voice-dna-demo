@@ -21,7 +21,7 @@ Stage ① 与主仓库 `src/tools/style_mimic.py` 同 prompt + 同 7 字段 sche
 
 ## 数据源
 
-- **预置例子**：标书代写账号（默认，零网络可跑）。
+- **预置例子**：数码测评博主（默认，零网络可跑）。
 - **贴样本**：手动贴参考文案 / 转录逐字稿。
 - **实时选题**：B站分区热榜 keyless（`/x/web-interface/ranking/region`），按赛道原生聚类（赛道命中→分区热榜；未命中→综合热门 `/x/web-interface/popular`）。只喂选题，不喂文案样本。
 - **实时搜索**（B站/小红书/抖音/微博）走主仓库 `trend_hunter` 的 cn-scraper（需登录），demo 不接。
