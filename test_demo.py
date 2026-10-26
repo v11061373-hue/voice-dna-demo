@@ -43,3 +43,48 @@ def test_generate_ecommerce_fallback(monkeypatch):
         dict(demo.FALLBACK_STYLE_CARD), "电商", profile="标书代写"
     )
     assert set(out) == {"宣传策略", "标题", "详情", "客服话术"}
+
+
+def test_track_hits_rid():
+    assert demo._track("美妆博主") == "美妆"
+    assert demo._track("标书代写服务号") is None
+
+
+def test_fetch_region_hot_parses(monkeypatch):
+    def fake_get(url, params=None, headers=None, timeout=None):
+        class R:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"code": 0, "data": [
+                    {"bvid": "BV1", "title": "把彩虹染到头发上", "typename": "美妆护肤", "play": 100, "description": ""},
+                    {"bvid": "BV2", "title": "秋冬妆容", "typename": "美妆护肤", "play": 200, "description": ""},
+                ]}
+
+        return R()
+
+    monkeypatch.setattr(demo.httpx, "get", fake_get)
+    out = demo.fetch_bilibili_hot("美妆", 5)
+    assert len(out) == 2
+    assert out[0]["url"] == "https://www.bilibili.com/video/BV1"
+    assert out[0]["tname"] == "美妆护肤"
+
+
+def test_fetch_popular_fallback(monkeypatch):
+    def fake_get(url, params=None, headers=None, timeout=None):
+        class R:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"code": 0, "data": {"list": [
+                    {"title": "电竞决赛", "desc": "", "tname": "电竞", "bvid": "BV2", "stat": {"view": 200}},
+                ]}}
+
+        return R()
+
+    monkeypatch.setattr(demo.httpx, "get", fake_get)
+    out = demo.fetch_bilibili_hot("标书代写", 5)
+    assert len(out) == 1
+    assert out[0]["title"] == "电竞决赛"

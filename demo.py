@@ -134,6 +134,79 @@ def call_llm(prompt: str, system: str = "") -> str:
     return resp.json()["choices"][0]["message"]["content"]
 
 
+BILIBILI_REGION_URL = "https://api.bilibili.com/x/web-interface/ranking/region"
+BILIBILI_POPULAR_URL = "https://api.bilibili.com/x/web-interface/popular"
+_BILI_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+)
+
+# 赛道 → B站分区 rid（keyless 分区热榜 = 原生聚类，优于客户端关键词过滤）。
+TRACK_RID = {
+    "美妆": 157, "数码": 188, "美食": 211, "健身": 234, "宠物": 217,
+    "游戏": 4, "汽车": 223, "旅游": 160, "母婴": 160, "职场": 36,
+}
+
+
+def _track(profile: str) -> str | None:
+    """profile 命中赛道 → 返回赛道名；未命中返回 None。"""
+    for track in TRACK_RID:
+        if track in (profile or ""):
+            return track
+    return None
+
+
+def fetch_bilibili_hot(profile: str = "", limit: int = 20) -> list[dict]:
+    """keyless 拉 B站热榜：赛道命中 → 分区热榜（原生聚类）；未命中 → 综合热门。失败返回 []。"""
+    track = _track(profile)
+    try:
+        if track is not None:
+            resp = httpx.get(
+                BILIBILI_REGION_URL,
+                params={"rid": TRACK_RID[track], "day": 3},
+                headers={"User-Agent": _BILI_UA},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            items = [
+                {
+                    "title": str(v.get("title", "")),
+                    "desc": str(v.get("description", "") or "")[:100],
+                    "tname": str(v.get("typename", "")),
+                    "view": int(v.get("play") or 0),
+                    "url": f"https://www.bilibili.com/video/{v.get('bvid', '')}",
+                }
+                for v in (data.get("data") or [])
+            ]
+        else:
+            resp = httpx.get(
+                BILIBILI_POPULAR_URL,
+                params={"ps": limit, "pn": 1},
+                headers={"User-Agent": _BILI_UA},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            items = [
+                {
+                    "title": str(v.get("title", "")),
+                    "desc": str(v.get("desc", "") or "")[:100],
+                    "tname": str(v.get("tname", "")),
+                    "view": int((v.get("stat") or {}).get("view") or 0),
+                    "url": (
+                        f"https://www.bilibili.com/video/{v.get('bvid', '')}"
+                        if v.get("bvid")
+                        else f"https://www.bilibili.com/video/av{v.get('aid', '')}"
+                    ),
+                }
+                for v in (data.get("data") or {}).get("list") or []
+            ]
+    except Exception:  # noqa: BLE001 — 网络/风控失败优雅降级为空
+        return []
+    return items[:limit]
+
+
 def _fmt_transcripts(transcripts: dict | None) -> str:
     if not transcripts:
         return "（无）"

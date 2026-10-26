@@ -26,8 +26,21 @@ else:
 
 topics = st.text_input("目标选题（逗号分隔）", value="技术标,废标避坑")
 
+hot_topics: list[str] = []
+if st.checkbox("实时选题：拉 B站热榜（keyless）"):
+    if st.button("拉 B站热榜", key="hot"):
+        with st.spinner("拉热榜..."):
+            st.session_state["hot"] = demo.fetch_bilibili_hot(profile=profile, limit=20)
+    hot = st.session_state.get("hot") or []
+    if hot:
+        opts = [f"{h['title']}（{h['tname']}·{h['view']}播放）" for h in hot]
+        picked = st.multiselect("选中要用的选题", opts, default=opts[:3])
+        hot_topics = [p.split("（")[0] for p in picked]
+    else:
+        st.caption("无命中：赛道不在词表（窄赛道）或网络失败。窄赛道请贴样本或手动填选题。")
+
 if st.button("跑管线：抽 DNA → 生成内容", type="primary"):
-    topic_list = [t.strip() for t in topics.split(",") if t.strip()]
+    topic_list = [t.strip() for t in topics.split(",") if t.strip()] + hot_topics
     with st.spinner("抽表达 DNA..."):
         card = demo.build_style_card(profile=profile, samples=samples, topics=topic_list)
     st.subheader("① 表达 DNA（7 字段风格卡）")
