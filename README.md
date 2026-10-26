@@ -1,5 +1,7 @@
 # voice-dna demo
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=v11061373-hue_voice-dna-demo&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=v11061373-hue_voice-dna-demo)
+
 `voice-dna`（[仓库](https://github.com/v11061373-hue/voice-dna)）的在线 demo：
 风格模仿内容生产管线——输入账号画像 + 文案样本，抽表达 DNA，再按目标生成定制内容。
 
